@@ -112,9 +112,10 @@ export default function UserEditModal({ user, isOpen, onClose, onUpdate }) {
                 <div className="modal-action">
                     <button
                         onClick={updateUser}
-                        className={`btn btn-warning ${loading ? "loading" : ""}`}
+                        className={`btn btn-warning`}
                         disabled={loading}
                     >
+                        {loading && <span className="loading loading-spinner"></span>}
                         {loading ? "Updating..." : "Update User"}
                     </button>
                     <button onClick={onClose} className="btn">Cancel</button>

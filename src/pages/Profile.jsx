@@ -2,37 +2,39 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = 'https://66d186b062816af9a4f3f5d4.mockapi.io';
 
 function Profile() {
-    const [userData, setUserData] = useState({
-        name: '',
-        email: '',
-        image: ''
-    });
+    const [userData, setUserData] = useState({});
     const [isEditing, setIsEditing] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
-        name: '',
+        firstname: '',
+        lastname: '',
         email: '',
-        image: null
+        country: '',
+        gender: ''
     });
+
+    const loadUserData = () => {
+        const user = localStorage.getItem('user');
+        if (user) {
+            const parsedUser = JSON.parse(user);
+            setUserData(parsedUser);
+            setFormData({
+                firstname: parsedUser.firstname || '',
+                lastname: parsedUser.lastname || '',
+                email: parsedUser.email || '',
+                country: parsedUser.country || '',
+                gender: parsedUser.gender || ''
+            });
+        } else {
+            console.log("ไม่พบข้อมูลผู้ใช้ใน localStorage");
+        }
+    };
 
     useEffect(() => {
-        const fetchUserProfile = async () => {
-            try {
-                const response = await axios.get(`${BASE_URL}/api`);
-                setUserData(response.data.user);
-                setFormData({
-                    name: response.data.user.name,
-                    email: response.data.user.email,
-                    image: response.data.user.image
-                });
-            } catch (error) {
-                console.error('Error fetching user profile:', error);
-            }
-        };
-
-        fetchUserProfile();
+        loadUserData();
     }, []);
 
     const handleChange = (event) => {
@@ -43,58 +45,45 @@ function Profile() {
         }));
     };
 
-    const handleFileChange = (event) => {
-        setFormData(prevState => ({
-            ...prevState,
-            image: event.target.files[0]
-        }));
-    };
-
     const handleEdit = () => {
         setIsEditing(true);
     };
 
     const handleCancel = () => {
         setIsEditing(false);
-        setFormData({
-            name: userData.name,
-            email: userData.email,
-            image: userData.image
-        });
+        loadUserData(); // รีเซ็ตข้อมูลกลับเป็นข้อมูลเดิม
     };
 
     const handleSave = async () => {
-        const formDataToSend = new FormData();
-        formDataToSend.append('name', formData.name);
-        formDataToSend.append('email', formData.email);
-        if (formData.image && typeof formData.image !== 'string') {
-            formDataToSend.append('image', formData.image);
-        }
-
+        setLoading(true);
         try {
-            const response = await axios.put(`${BASE_URL}/api/user`, formDataToSend, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                },
-                withCredentials: true
+            const response = await axios.put(`${BASE_URL}/users/${userData.id}`, {
+                firstname: formData.firstname,
+                lastname: formData.lastname,
+                email: formData.email,
+                country: formData.country,
+                gender: formData.gender
             });
 
-            setUserData({
-                ...formData,
-                image: formData.image && typeof formData.image !== 'string'
-                    ? URL.createObjectURL(formData.image)
-                    : userData.image // ใช้ภาพเดิมถ้าไม่มีการอัปโหลดใหม่
-            });
+            // Update local state and localStorage
+            const updatedUser = {
+                ...userData,
+                firstname: formData.firstname,
+                lastname: formData.lastname,
+                email: formData.email,
+                country: formData.country,
+                gender: formData.gender
+            };
+            setUserData(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+
             setIsEditing(false);
-            Swal.fire('Saved!', response.data.message, 'success');
+            Swal.fire('Saved!', 'Your profile has been updated.', 'success');
         } catch (error) {
-            if (error.response && error.response.status === 409) {
-                Swal.fire('Error!', 'Email already exists!', 'error');
-            } else {
-                console.error('Error saving user profile:', error);
-                const errorMessage = error.response?.data?.message || 'An unknown error occurred';
-                Swal.fire('Error', errorMessage, 'error');
-            }
+            console.error('Error saving user profile:', error);
+            Swal.fire('Error', 'An error occurred while saving your profile.', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -103,28 +92,36 @@ function Profile() {
             <h1 className="text-3xl font-bold mb-6 text-center">Profile</h1>
             <div className="card w-full lg:w-1/2 mx-auto bg-base-100 shadow-2xl">
                 <div className="card-body">
-                    <div className="avatar mb-6 flex justify-center">
-                        <div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-                            <img src={userData.image ||
-                                `https://ui-avatars.com/api/?name=${userData.name}&size=150`}
-                                alt="Profile"
-                            />
-                        </div>
-                    </div>
                     <div className="form-control mb-6">
                         <label className="label">
-                            <span className="label-text text-lg">Name</span>
+                            <span className="label-text text-lg">Firstname</span>
                         </label>
                         {isEditing ? (
                             <input
                                 type="text"
-                                name="name"
+                                name="firstname"
                                 className="input input-bordered w-full"
-                                value={formData.name}
+                                value={formData.firstname}
                                 onChange={handleChange}
                             />
                         ) : (
-                            <p className="text-xl font-semibold">{userData.name}</p>
+                            <p className="text-xl font-semibold">{userData.firstname}</p>
+                        )}
+                    </div>
+                    <div className="form-control mb-6">
+                        <label className="label">
+                            <span className="label-text text-lg">Lastname</span>
+                        </label>
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                name="lastname"
+                                className="input input-bordered w-full"
+                                value={formData.lastname}
+                                onChange={handleChange}
+                            />
+                        ) : (
+                            <p className="text-xl font-semibold">{userData.lastname}</p>
                         )}
                     </div>
                     <div className="form-control mb-6">
@@ -143,25 +140,49 @@ function Profile() {
                             <p className="text-xl font-semibold">{userData.email}</p>
                         )}
                     </div>
-                    {isEditing && (
-                        <div className="form-control mb-6">
-                            <label className="label">
-                                <span className="label-text text-lg">Profile Image</span>
-                            </label>
+                    <div className="form-control mb-6">
+                        <label className="label">
+                            <span className="label-text text-lg">Country</span>
+                        </label>
+                        {isEditing ? (
                             <input
-                                type="file"
-                                name="image"
-                                className="file-input file-input-bordered w-full"
-                                accept="image/*"
-                                onChange={handleFileChange}
+                                type="text"
+                                name="country"
+                                className="input input-bordered w-full"
+                                value={formData.country}
+                                onChange={handleChange}
                             />
-                            <p className="text-sm text-gray-600 mt-1">* ขนาดรูปไม่เกิน 5 MB.</p>
-                        </div>
-                    )}
+                        ) : (
+                            <p className="text-xl font-semibold">{userData.country}</p>
+                        )}
+                    </div>
+                    <div className="form-control mb-6">
+                        <label className="label">
+                            <span className="label-text text-lg">Gender</span>
+                        </label>
+                        {isEditing ? (
+                            <select
+                                name="gender"
+                                className="input input-bordered w-full"
+                                value={formData.gender}
+                                onChange={handleChange}
+                            >
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        ) : (
+                            <p className="text-xl font-semibold">{userData.gender}</p>
+                        )}
+                    </div>
                     <div className="form-control mt-6">
                         {isEditing ? (
                             <div className="flex space-x-2 justify-center">
-                                <button className="btn btn-primary" onClick={handleSave}>Save</button>
+                                <button className="btn btn-primary" onClick={handleSave} disabled={loading}>
+                                    {loading ? (
+                                        <span className="loading loading-spinner"></span>
+                                    ) : 'Save'}
+                                </button>
                                 <button className="btn btn-secondary" onClick={handleCancel}>Cancel</button>
                             </div>
                         ) : (
@@ -177,172 +198,3 @@ function Profile() {
 }
 
 export default Profile;
-
-// import { useState, useEffect } from 'react';
-// import axios from 'axios';
-// import Swal from 'sweetalert2';
-
-// const BASE_URL = 'http://localhost:5000';
-
-// function Profile() {
-//     const [userData, setUserData] = useState({
-//         name: '',
-//         email: '',
-//         image: '' // เพิ่มฟิลด์สำหรับรูปภาพ
-//     });
-//     const [isEditing, setIsEditing] = useState(false);
-//     const [formData, setFormData] = useState({
-//         name: '',
-//         email: '',
-//         image: null // เก็บไฟล์รูปภาพที่อัปโหลด
-//     });
-
-//     useEffect(() => {
-//         const fetchUserProfile = async () => {
-//             try {
-//                 const response = await axios.get(`${BASE_URL}/api`);
-//                 setUserData(response.data.user);
-//                 setFormData({
-//                     name: response.data.user.name,
-//                     email: response.data.user.email,
-//                     image: response.data.user.image
-//                 });
-//             } catch (error) {
-//                 console.error('Error fetching user profile:', error);
-//             }
-//         };
-
-//         fetchUserProfile();
-//     }, []);
-
-//     const handleChange = (event) => {
-//         const { name, value } = event.target;
-//         setFormData(prevState => ({
-//             ...prevState,
-//             [name]: value
-//         }));
-//     };
-
-//     const handleFileChange = (event) => {
-//         setFormData(prevState => ({
-//             ...prevState,
-//             image: event.target.files[0] // จัดการไฟล์ที่อัปโหลด
-//         }));
-//     };
-
-//     const handleEdit = () => {
-//         setIsEditing(true);
-//     };
-
-//     const handleCancel = () => {
-//         setIsEditing(false);
-//         setFormData({
-//             name: userData.name,
-//             email: userData.email,
-//             image: userData.image
-//         });
-//     };
-
-//     const handleSave = async () => {
-//         const formDataToSend = new FormData();
-//         formDataToSend.append('name', formData.name);
-//         formDataToSend.append('email', formData.email);
-//         if (formData.image) {
-//             formDataToSend.append('image', formData.image); // ส่งไฟล์รูปภาพไปยัง backend
-//         }
-
-//         try {
-//             const response = await axios.put(`${BASE_URL}/api/user`, formDataToSend, {
-//                 headers: {
-//                     'Content-Type': 'multipart/form-data'
-//                 },
-//                 withCredentials: true
-//             });
-//             setUserData({
-//                 ...formData,
-//                 image: formData.image ? URL.createObjectURL(formData.image) : userData.image
-//             });
-//             setIsEditing(false);
-//             Swal.fire('Saved!', response.data.message, 'success');
-//         } catch (error) {
-//             console.error('Error saving user profile:', error);
-//             Swal.fire('Error!', 'An error occurred while saving your profile.', 'error');
-//         }
-//     };
-
-//     return (
-//         <div className="container mx-auto p-4">
-//             <h1 className="text-2xl font-bold mb-4">Profile</h1>
-//             <div className="card bg-base-100 shadow-xl">
-//                 <div className="card-body">
-//                     <div className="avatar mb-4">
-//                         <div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-//                             <img src={userData.image ||
-//                                 `https://ui-avatars.com/api/?name=${userData.name}&size=150`}
-//                                 alt="Profile"
-//                             />
-//                         </div>
-//                     </div>
-//                     <div className="form-control mb-4">
-//                         <label className="label">
-//                             <span className="label-text">Name</span>
-//                         </label>
-//                         {isEditing ? (
-//                             <input
-//                                 type="text"
-//                                 name="name"
-//                                 className="input input-bordered"
-//                                 value={formData.name}
-//                                 onChange={handleChange}
-//                             />
-//                         ) : (
-//                             <p className="text-xl">{userData.name}</p>
-//                         )}
-//                     </div>
-//                     <div className="form-control mb-4">
-//                         <label className="label">
-//                             <span className="label-text">Email</span>
-//                         </label>
-//                         {isEditing ? (
-//                             <input
-//                                 type="email"
-//                                 name="email"
-//                                 className="input input-bordered"
-//                                 value={formData.email}
-//                                 onChange={handleChange}
-//                             />
-//                         ) : (
-//                             <p className="text-xl">{userData.email}</p>
-//                         )}
-//                     </div>
-//                     {isEditing && (
-//                         <div className="form-control mb-4">
-//                             <label className="label">
-//                                 <span className="label-text">Profile Image</span>
-//                             </label>
-//                             <input
-//                                 type="file"
-//                                 name="image"
-//                                 className="file-input file-input-bordered"
-//                                 accept="image/*"
-//                                 onChange={handleFileChange}
-//                             />
-//                         </div>
-//                     )}
-//                     <div className="form-control mt-6">
-//                         {isEditing ? (
-//                             <div className="flex space-x-2">
-//                                 <button className="btn btn-primary" onClick={handleSave}>Save</button>
-//                                 <button className="btn btn-secondary" onClick={handleCancel}>Cancel</button>
-//                             </div>
-//                         ) : (
-//                             <button className="btn btn-primary" onClick={handleEdit}>Edit Profile</button>
-//                         )}
-//                     </div>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }
-
-// export default Profile;

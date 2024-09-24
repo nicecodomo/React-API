@@ -2,9 +2,6 @@ import { Link } from 'react-router-dom';
 import { IoIosSettings } from "react-icons/io";
 import { MdAccountCircle, MdOutlineDashboard } from 'react-icons/md';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
-
-const BASE_URL = 'https://66d186b062816af9a4f3f5d4.mockapi.io/users';
 
 const Sidebar = ({ isOpen }) => { // รับ prop isOpen
     const [userData, setUserData] = useState({});

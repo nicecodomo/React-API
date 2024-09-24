@@ -101,8 +101,14 @@ function Navbar({ onToggleSidebar }) { // รับ callback
             </div>
 
             {/* Content ที่จะแสดงเป็น dropdown สำหรับหน้าจอเล็ก */}
-            {isContentVisible && (
-                <div className="lg:hidden menu bg-base-200 p-4">
+
+            <div className=
+                {
+                    `lg:hidden transition-all duration-500 ease-in-out overflow-hidden
+                    ${isContentVisible ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`
+                }
+            >
+                <div className="menu bg-base-200 p-4">
                     <li>
                         <Link to="/home" className="flex items-center">
                             <MdOutlineDashboard className='h-6 w-6 mr-2' />
@@ -122,7 +128,7 @@ function Navbar({ onToggleSidebar }) { // รับ callback
                         </Link>
                     </li>
                 </div>
-            )}
+            </div>
         </>
     );
 }

@@ -53,6 +53,13 @@ export default function Home() {
     };
 
     const deleteUser = async (id) => {
+        const loggedInUser = JSON.parse(localStorage.getItem('user'));
+
+        if (loggedInUser && loggedInUser.id === id) {
+            Swal.fire('Error!', 'You cannot delete your own account.', 'error')
+            return;
+        }
+
         const confirmed = await Swal.fire({
             title: 'Are you sure?',
             text: 'This action cannot be undone!',
